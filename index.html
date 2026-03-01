@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全国AI准备就绪学校展示平台</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <script src="./china.js"></script>
+
     <style>
         /* --- 全局 CSS 设置 (默认暗色主题) --- */
         :root {
@@ -54,203 +58,66 @@
             transition: background-image 0.5s;
         }
 
-        .container {
-            max-width: 1500px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-        }
+        .container { max-width: 1500px; margin: 0 auto; padding: 20px; position: relative; }
 
         /* --- 文字版主题切换按钮 --- */
         .theme-toggle-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 8px 20px;
-            border-radius: 20px;
-            background: transparent;
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            z-index: 100;
+            position: absolute; top: 20px; right: 20px; padding: 8px 20px; border-radius: 20px;
+            background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color);
+            cursor: pointer; font-weight: bold; font-size: 0.95rem; letter-spacing: 1px;
+            transition: all 0.3s ease; z-index: 100;
         }
+        .theme-toggle-btn:hover { background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); transform: translateY(-2px); }
+        body[data-theme="light"] .theme-toggle-btn:hover { background: rgba(0, 86, 179, 0.1); box-shadow: 0 0 15px rgba(0, 86, 179, 0.3); }
 
-        .theme-toggle-btn:hover {
-            background: rgba(0, 242, 255, 0.1);
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        body[data-theme="light"] .theme-toggle-btn:hover {
-            background: rgba(0, 86, 179, 0.1);
-            box-shadow: 0 0 15px rgba(0, 86, 179, 0.3);
-        }
-
-        header {
-            text-align: center;
-            padding: 40px 0;
-        }
-
-        h1.main-title {
-            font-size: 3rem;
-            margin: 0;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: var(--title-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            transition: all 0.5s;
-        }
-        
-        body:not([data-theme="light"]) h1.main-title {
-            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); 
-        }
-
-        p.sub-title {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            margin-top: 10px;
-        }
+        header { text-align: center; padding: 40px 0; }
+        h1.main-title { font-size: 3rem; margin: 0; font-weight: 800; letter-spacing: 2px; background: var(--title-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.5s; }
+        body:not([data-theme="light"]) h1.main-title { text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); }
+        p.sub-title { color: var(--text-secondary); font-size: 1.1rem; margin-top: 10px; }
 
         /* --- 核心：数据看板融合布局 --- */
         .dashboard-window {
-            display: flex;
-            height: 75vh; 
-            min-height: 600px;
-            margin-bottom: 50px;
-            border-radius: 20px;
-            background: var(--card-bg);
-            box-shadow: 0 0 50px var(--map-shadow) inset;
-            border: 1px solid var(--map-border);
-            transition: border-color 0.5s, box-shadow 0.5s, background-color 0.5s;
-            overflow: hidden; 
-            position: relative;
+            display: flex; height: 75vh; min-height: 600px; margin-bottom: 50px; border-radius: 20px;
+            background: var(--card-bg); box-shadow: 0 0 50px var(--map-shadow) inset; border: 1px solid var(--map-border);
+            transition: border-color 0.5s, box-shadow 0.5s, background-color 0.5s; overflow: hidden; position: relative;
         }
-
-        .map-section {
-            flex: 1; 
-            min-width: 0; 
-            height: 100%;
-            position: relative;
-        }
-
+        .map-section { flex: 1; min-width: 0; height: 100%; position: relative; }
         #china-map { width: 100%; height: 100%; }
 
         /* --- 悬浮：展开名单按钮 --- */
         .open-list-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(16, 33, 79, 0.8);
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            z-index: 10;
-            backdrop-filter: blur(5px);
-            transition: all 0.3s;
+            position: absolute; top: 20px; right: 20px; background: rgba(16, 33, 79, 0.8);
+            border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 16px; border-radius: 8px;
+            cursor: pointer; font-weight: bold; z-index: 10; backdrop-filter: blur(5px); transition: all 0.3s;
         }
-        
-        body[data-theme="light"] .open-list-btn {
-            background: rgba(255, 255, 255, 0.9);
-        }
-
+        body[data-theme="light"] .open-list-btn { background: rgba(255, 255, 255, 0.9); }
         .open-list-btn:hover { background: rgba(0, 242, 255, 0.2); }
-        
-        /* 隐藏状态 */
-        .open-list-btn.hidden {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateX(20px);
-        }
+        .open-list-btn.hidden { opacity: 0; pointer-events: none; transform: translateX(20px); }
 
         /* --- 名单侧边栏 --- */
         .list-section {
-            width: 350px;
-            height: 100%;
-            border-left: 1px solid var(--map-border);
-            background: rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            width: 350px; height: 100%; border-left: 1px solid var(--map-border); background: rgba(0, 0, 0, 0.1);
+            display: flex; flex-direction: column; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
         }
+        body[data-theme="light"] .list-section { background: rgba(255, 255, 255, 0.3); }
+        .list-section.collapsed { width: 0; opacity: 0; border-left: none; }
         
-        body[data-theme="light"] .list-section {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* 折叠状态 */
-        .list-section.collapsed {
-            width: 0;
-            opacity: 0;
-            border-left: none;
-        }
-
         .list-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--map-border);
-            background: rgba(0, 0, 0, 0.2);
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            white-space: nowrap; 
+            padding: 20px; border-bottom: 1px solid var(--map-border); background: rgba(0, 0, 0, 0.2); font-size: 1.1rem;
+            font-weight: bold; color: var(--accent-color); display: flex; align-items: center; justify-content: space-between; white-space: nowrap; 
         }
-        
         body[data-theme="light"] .list-header { background: rgba(255, 255, 255, 0.5); }
-
-        .close-list-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0 5px;
-            transition: color 0.3s, transform 0.3s;
-        }
         
-        .close-list-btn:hover { 
-            color: var(--accent-color); 
-            transform: scale(1.2);
-        }
+        .close-list-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; padding: 0 5px; transition: color 0.3s, transform 0.3s; }
+        .close-list-btn:hover { color: var(--accent-color); transform: scale(1.2); }
 
-        .school-items-container {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 15px;
-            min-width: 320px; 
-        }
-
-        /* 科技感滚动条 */
+        .school-items-container { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 15px; min-width: 320px; }
         .school-items-container::-webkit-scrollbar { width: 6px; }
         .school-items-container::-webkit-scrollbar-track { background: transparent; }
         .school-items-container::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 10px; }
 
-        .school-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            background: rgba(255, 255, 255, 0.02);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .school-item:hover {
-            background: rgba(0, 242, 255, 0.08);
-            border-color: var(--map-border);
-            transform: translateX(5px); 
-        }
-        
+        .school-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.02); cursor: pointer; transition: all 0.3s; }
+        .school-item:hover { background: rgba(0, 242, 255, 0.08); border-color: var(--map-border); transform: translateX(5px); }
         body[data-theme="light"] .school-item:hover { background: rgba(0, 86, 179, 0.05); }
 
         .school-serial { font-size: 0.85rem; color: var(--accent-color); font-weight: bold; margin-bottom: 5px; }
@@ -299,7 +166,7 @@
         </div>
 
         <section class="charter-section">
-            <h2 class="section-title">联盟核心章程</h2>
+            <h2 class="section-title">联盟章程核心</h2>
             <div class="charter-grid">
                 <div class="charter-card">
                     <h3>◈ 基础设施先行</h3>
@@ -326,7 +193,7 @@
     </footer>
 
     <script>
-        // 1. 数据处理
+        // 1. 学校数据处理
         const schoolData = [
             [116.30, 39.95, "北京·清华大学附属中学", "特色：建立了全国领先的中学AI超算中心，与顶尖高校联合开发无人驾驶课程。"],
             [121.48, 31.22, "上海·上海中学", "特色：将AI全面融入STEM教育体系，学生团队多次在国际AI创新大赛获奖。"],
@@ -345,7 +212,7 @@
             }
         });
 
-        // 2. 初始化地图及配置
+        // 2. 初始化地图容器和主题
         const myChart = echarts.init(document.getElementById('china-map'));
         let isLightTheme = false;
 
@@ -362,44 +229,39 @@
             });
         }
 
-        // 加载地图数据
-        myChart.showLoading({ text: '正在加载...', color: '#00f2ff', maskColor: 'rgba(5, 10, 31, 0.8)' });
-        
-        fetch('./china.json')
-            .then(res => {
-                if (!res.ok) throw new Error('地图数据加载失败');
-                return res.json();
-            })
-            .then(geoJson => {
-                myChart.hideLoading();
-                echarts.registerMap('china', geoJson);
+        // 3. 核心：加载地图数据（加入安全检测拦截）
+        if (typeof chinaGeoJson === 'undefined') {
+            alert("系统检测到错误：未能正确读取 china.js！\n请确保：\n1. china.js 和 index.html 在同一个文件夹内。\n2. china.js 文件的第一行写的是 var chinaGeoJson = {");
+        } else {
+            // 直接将 JS 变量注册给 ECharts
+            echarts.registerMap('china', chinaGeoJson);
 
-                const baseOption = {
-                    tooltip: {
-                        trigger: 'item', borderWidth: 1,
-                        formatter: function (params) {
-                            if (params.seriesType === 'effectScatter') {
-                                return `<div style="font-weight:bold; font-size:16px; margin-bottom:5px;">
-                                            <span style="color:${isLightTheme ? '#0056b3' : '#00f2ff'}">${params.data.serial}</span> ${params.data.name}
-                                        </div><div style="font-size:13px; max-width: 250px; white-space: normal;">${params.data.Highlight}</div>`;
-                            }
-                            return params.name;
+            const baseOption = {
+                tooltip: {
+                    trigger: 'item', borderWidth: 1,
+                    formatter: function (params) {
+                        if (params.seriesType === 'effectScatter') {
+                            return `<div style="font-weight:bold; font-size:16px; margin-bottom:5px;">
+                                        <span style="color:${isLightTheme ? '#0056b3' : '#00f2ff'}">${params.data.serial}</span> ${params.data.name}
+                                    </div><div style="font-size:13px; max-width: 250px; white-space: normal;">${params.data.Highlight}</div>`;
                         }
-                    },
-                    geo: { map: 'china', roam: true, zoom: 1.2, label: { emphasis: { show: false } }, itemStyle: { normal: { borderWidth: 1.5, shadowBlur: 10 } } },
-                    series: [{
-                        name: 'AI-Ready Schools', type: 'effectScatter', coordinateSystem: 'geo', data: formattedData,
-                        symbolSize: 15, showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 4, period: 4 },
-                        label: { show: false }, itemStyle: { shadowBlur: 20 },
-                        emphasis: { label: { show: true, position: 'top', formatter: p => p.data.serial, color: '#fff', fontSize: 13, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: [4, 8], borderRadius: 4 } }
-                    }]
-                };
+                        return params.name;
+                    }
+                },
+                geo: { map: 'china', roam: true, zoom: 1.2, label: { emphasis: { show: false } }, itemStyle: { normal: { borderWidth: 1.5, shadowBlur: 10 } } },
+                series: [{
+                    name: 'AI-Ready Schools', type: 'effectScatter', coordinateSystem: 'geo', data: formattedData,
+                    symbolSize: 15, showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 4, period: 4 },
+                    label: { show: false }, itemStyle: { shadowBlur: 20 },
+                    emphasis: { label: { show: true, position: 'top', formatter: p => p.data.serial, color: '#fff', fontSize: 13, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: [4, 8], borderRadius: 4 } }
+                }]
+            };
 
-                myChart.setOption(baseOption);
-                updateEchartsTheme(mapThemes.dark);
-            });
+            myChart.setOption(baseOption);
+            updateEchartsTheme(mapThemes.dark);
+        }
 
-        // 3. 生成右侧列表
+        // 4. 生成右侧联动列表
         const listContainer = document.getElementById('schoolListContainer');
         formattedData.forEach((item, index) => {
             const el = document.createElement('div');
@@ -411,32 +273,27 @@
             listContainer.appendChild(el);
         });
 
-        // 4. 折叠/展开 面板逻辑 与 ECharts 自适应
+        // 5. 折叠面板逻辑与 ECharts 尺寸自适应
         const listPanel = document.getElementById('schoolListPanel');
         const openListBtn = document.getElementById('openListBtn');
         const closeListBtn = document.getElementById('closeListBtn');
         const mapSection = document.getElementById('mapSection');
 
-        // 收起面板
         closeListBtn.addEventListener('click', () => {
             listPanel.classList.add('collapsed');
             openListBtn.classList.remove('hidden'); 
         });
 
-        // 展开面板
         openListBtn.addEventListener('click', () => {
             listPanel.classList.remove('collapsed');
             openListBtn.classList.add('hidden'); 
         });
 
-        // 监听父容器尺寸变化，名单滑出时让 ECharts 丝滑重绘
-        const resizeObserver = new ResizeObserver(() => {
-            if(myChart) myChart.resize();
-        });
+        const resizeObserver = new ResizeObserver(() => { if(myChart) myChart.resize(); });
         resizeObserver.observe(mapSection);
         window.addEventListener('resize', () => myChart.resize());
 
-        // 5. 主题切换逻辑 (纯文字)
+        // 6. 主题切换逻辑
         const themeBtn = document.getElementById('themeToggle');
         themeBtn.addEventListener('click', () => {
             isLightTheme = !isLightTheme;
