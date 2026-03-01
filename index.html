@@ -364,8 +364,12 @@
 
         // 加载地图数据
         myChart.showLoading({ text: '正在加载...', color: '#00f2ff', maskColor: 'rgba(5, 10, 31, 0.8)' });
-        fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
-            .then(res => res.json())
+        
+        fetch('./china.json')
+            .then(res => {
+                if (!res.ok) throw new Error('地图数据加载失败');
+                return res.json();
+            })
             .then(geoJson => {
                 myChart.hideLoading();
                 echarts.registerMap('china', geoJson);
