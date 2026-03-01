@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全国AI准备就绪学校展示平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        /* --- 全局 CSS 设置 (默认暗色主题) --- */
+        :root {
+            --bg-color: #050a1f; 
+            --accent-color: #00f2ff; 
+            --text-primary: #ffffff;
+            --text-secondary: #a8b2d1;
+            --card-bg: rgba(16, 33, 79, 0.4); 
+            --grid-color: rgba(0, 242, 255, 0.05);
+            --title-gradient: linear-gradient(to right, #ffffff, var(--accent-color));
+            --map-border: rgba(0, 242, 255, 0.2);
+            --map-shadow: rgba(0, 128, 255, 0.15);
+        }
+
+        /* --- 亮色主题变量 --- */
+        body[data-theme="light"] {
+            --bg-color: #f0f4f8; 
+            --accent-color: #0056b3; 
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a5568;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --grid-color: rgba(0, 86, 179, 0.05);
+            --title-gradient: linear-gradient(to right, #1a1a1a, var(--accent-color));
+            --map-border: rgba(0, 86, 179, 0.2);
+            --map-shadow: rgba(0, 86, 179, 0.05);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background-color 0.5s, color 0.5s; 
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            transition: background-image 0.5s;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* --- 文字版主题切换按钮 --- */
+        .theme-toggle-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 20px;
+            border-radius: 20px;
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(0, 242, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        body[data-theme="light"] .theme-toggle-btn:hover {
+            background: rgba(0, 86, 179, 0.1);
+            box-shadow: 0 0 15px rgba(0, 86, 179, 0.3);
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1.main-title {
+            font-size: 3rem;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: var(--title-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: all 0.5s;
+        }
+        
+        body:not([data-theme="light"]) h1.main-title {
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); 
+        }
+
+        p.sub-title {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        /* --- 核心：数据看板融合布局 --- */
+        .dashboard-window {
+            display: flex;
+            height: 75vh; 
+            min-height: 600px;
+            margin-bottom: 50px;
+            border-radius: 20px;
+            background: var(--card-bg);
+            box-shadow: 0 0 50px var(--map-shadow) inset;
+            border: 1px solid var(--map-border);
+            transition: border-color 0.5s, box-shadow 0.5s, background-color 0.5s;
+            overflow: hidden; 
+            position: relative;
+        }
+
+        .map-section {
+            flex: 1; 
+            min-width: 0; 
+            height: 100%;
+            position: relative;
+        }
+
+        #china-map { width: 100%; height: 100%; }
+
+        /* --- 悬浮：展开名单按钮 --- */
+        .open-list-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(16, 33, 79, 0.8);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+        }
+        
+        body[data-theme="light"] .open-list-btn {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .open-list-btn:hover { background: rgba(0, 242, 255, 0.2); }
+        
+        /* 隐藏状态 */
+        .open-list-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(20px);
+        }
+
+        /* --- 名单侧边栏 --- */
+        .list-section {
+            width: 350px;
+            height: 100%;
+            border-left: 1px solid var(--map-border);
+            background: rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+        
+        body[data-theme="light"] .list-section {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 折叠状态 */
+        .list-section.collapsed {
+            width: 0;
+            opacity: 0;
+            border-left: none;
+        }
+
+        .list-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--map-border);
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            white-space: nowrap; 
+        }
+        
+        body[data-theme="light"] .list-header { background: rgba(255, 255, 255, 0.5); }
+
+        .close-list-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 5px;
+            transition: color 0.3s, transform 0.3s;
+        }
+        
+        .close-list-btn:hover { 
+            color: var(--accent-color); 
+            transform: scale(1.2);
+        }
+
+        .school-items-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px;
+            min-width: 320px; 
+        }
+
+        /* 科技感滚动条 */
+        .school-items-container::-webkit-scrollbar { width: 6px; }
+        .school-items-container::-webkit-scrollbar-track { background: transparent; }
+        .school-items-container::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 10px; }
+
+        .school-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .school-item:hover {
+            background: rgba(0, 242, 255, 0.08);
+            border-color: var(--map-border);
+            transform: translateX(5px); 
+        }
+        
+        body[data-theme="light"] .school-item:hover { background: rgba(0, 86, 179, 0.05); }
+
+        .school-serial { font-size: 0.85rem; color: var(--accent-color); font-weight: bold; margin-bottom: 5px; }
+        .school-name { font-size: 1.1rem; font-weight: bold; color: var(--text-primary); margin-bottom: 8px; }
+        .school-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* --- 章程区域 --- */
+        .charter-section { padding: 40px 0; text-align: center; }
+        .section-title { font-size: 2rem; margin-bottom: 40px; display: inline-block; border-bottom: 3px solid var(--accent-color); padding-bottom: 10px; }
+        .charter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; text-align: left; }
+        .charter-card { background: var(--card-bg); padding: 30px; border-radius: 15px; border: 1px solid rgba(128,128,128,0.2); transition: transform 0.3s, box-shadow 0.3s; position: relative; overflow: hidden; }
+        .charter-card:hover { transform: translateY(-5px); }
+        body:not([data-theme="light"]) .charter-card:hover { box-shadow: 0 5px 20px rgba(0, 242, 255, 0.15); }
+        .charter-card h3 { color: var(--accent-color); font-size: 1.3rem; margin-top: 0; }
+        .charter-card p { color: var(--text-secondary); line-height: 1.6; font-size: 0.95rem;}
+
+        footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.9rem; border-top: 1px solid rgba(128,128,128,0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button id="themeToggle" class="theme-toggle-btn">切换主题</button>
+
+        <header>
+            <h1 class="main-title">全国 AI 准备就绪学校</h1>
+            <p class="sub-title">定义未来教育标准 · 展示中国教育创新力量</p>
+        </header>
+
+        <div class="dashboard-window">
+            
+            <main class="map-section" id="mapSection">
+                <div id="china-map"></div>
+                <button id="openListBtn" class="open-list-btn">☰ 展开名单</button>
+            </main>
+
+            <aside class="list-section collapsed" id="schoolListPanel">
+                <div class="list-header">
+                    <span>☰ 入选名录 (Top 100)</span>
+                    <button id="closeListBtn" class="close-list-btn" title="收起面板">＞</button>
+                </div>
+                <div class="school-items-container" id="schoolListContainer">
+                    </div>
+            </aside>
+
+        </div>
+
+        <section class="charter-section">
+            <h2 class="section-title">联盟核心章程</h2>
+            <div class="charter-grid">
+                <div class="charter-card">
+                    <h3>◈ 基础设施先行</h3>
+                    <p>学校具备支持AI教学和管理的硬件环境，包括高性能计算资源与专业AI实验室。</p>
+                </div>
+                <div class="charter-card">
+                    <h3>◈ 课程体系融合</h3>
+                    <p>将AI思维融入跨学科教学中。建立分层次的课程体系，培养计算思维与人机协作能力。</p>
+                </div>
+                <div class="charter-card">
+                    <h3>◈ 师资素养提升</h3>
+                    <p>持续投入教师数字化转型培训。让教师从知识传授者转变为AI世界的引导者。</p>
+                </div>
+                <div class="charter-card">
+                    <h3>◈ 伦理与责任</h3>
+                    <p>将科技伦理教育置于核心。引导学生思考AI对社会的影响，培养具备社会责任感的创新者。</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>© 2026 AI-Ready Schools Alliance. All Rights Reserved. | 华东师范大学智能教育实验室</p>
+    </footer>
+
+    <script>
+        // 1. 数据处理
+        const schoolData = [
+            [116.30, 39.95, "北京·清华大学附属中学", "特色：建立了全国领先的中学AI超算中心，与顶尖高校联合开发无人驾驶课程。"],
+            [121.48, 31.22, "上海·上海中学", "特色：将AI全面融入STEM教育体系，学生团队多次在国际AI创新大赛获奖。"],
+            [113.93, 22.54, "深圳·深圳中学", "特色：与腾讯、华为等科技巨头深度合作，开设企业级实训项目。"],
+            [104.06, 30.67, "成都·成都七中", "特色：利用AI技术实现远程教育资源普惠，辐射西部地区薄弱学校。"],
+            [108.93, 34.27, "西安·西北工业大学附属中学", "特色：依托高校国防科技背景，在航空航天AI应用领域有深厚积累。"],
+            [120.15, 30.28, "杭州·杭州第二中学", "特色：位于数字经济之城，重点培养学生在自然语言处理和计算机视觉方面的能力。"],
+            [114.30, 30.59, "武汉·华中师范大学第一附属中学", "特色：构建了全场景AI智慧校园，利用教育大模型进行精准学情分析。"],
+            [118.79, 32.06, "南京·南京外国语学校", "特色：AI跨语言翻译与国际交流项目，培养具有全球视野的AI复合型人才。"]
+        ];
+
+        const formattedData = schoolData.map((item, index) => {
+            return {
+                name: item[2], value: [item[0], item[1]], Highlight: item[3],
+                serial: 'No.' + String(index + 1).padStart(3, '0')
+            }
+        });
+
+        // 2. 初始化地图及配置
+        const myChart = echarts.init(document.getElementById('china-map'));
+        let isLightTheme = false;
+
+        const mapThemes = {
+            dark: { tooltipBg: 'rgba(16, 33, 79, 0.9)', tooltipBorder: '#00f2ff', tooltipText: '#fff', areaColor: '#0d1535', borderColor: '#1e3a6e', hoverAreaColor: '#162a5c', pointColor: '#00f2ff', hoverPointColor: '#ffcc00' },
+            light: { tooltipBg: 'rgba(255, 255, 255, 0.95)', tooltipBorder: '#0056b3', tooltipText: '#333', areaColor: '#e2e8f0', borderColor: '#cbd5e1', hoverAreaColor: '#cbd5e1', pointColor: '#0056b3', hoverPointColor: '#e65100' }
+        };
+
+        function updateEchartsTheme(themeConfig) {
+            myChart.setOption({
+                tooltip: { backgroundColor: themeConfig.tooltipBg, borderColor: themeConfig.tooltipBorder, textStyle: { color: themeConfig.tooltipText } },
+                geo: { itemStyle: { normal: { areaColor: themeConfig.areaColor, borderColor: themeConfig.borderColor, shadowColor: isLightTheme ? 'transparent' : 'rgba(0, 242, 255, 0.2)' }, emphasis: { areaColor: themeConfig.hoverAreaColor } } },
+                series: [{ itemStyle: { color: themeConfig.pointColor, shadowColor: isLightTheme ? 'transparent' : themeConfig.pointColor }, emphasis: { itemStyle: { color: themeConfig.hoverPointColor } } }]
+            });
+        }
+
+        // 加载地图数据
+        myChart.showLoading({ text: '正在加载...', color: '#00f2ff', maskColor: 'rgba(5, 10, 31, 0.8)' });
+        fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+            .then(res => res.json())
+            .then(geoJson => {
+                myChart.hideLoading();
+                echarts.registerMap('china', geoJson);
+
+                const baseOption = {
+                    tooltip: {
+                        trigger: 'item', borderWidth: 1,
+                        formatter: function (params) {
+                            if (params.seriesType === 'effectScatter') {
+                                return `<div style="font-weight:bold; font-size:16px; margin-bottom:5px;">
+                                            <span style="color:${isLightTheme ? '#0056b3' : '#00f2ff'}">${params.data.serial}</span> ${params.data.name}
+                                        </div><div style="font-size:13px; max-width: 250px; white-space: normal;">${params.data.Highlight}</div>`;
+                            }
+                            return params.name;
+                        }
+                    },
+                    geo: { map: 'china', roam: true, zoom: 1.2, label: { emphasis: { show: false } }, itemStyle: { normal: { borderWidth: 1.5, shadowBlur: 10 } } },
+                    series: [{
+                        name: 'AI-Ready Schools', type: 'effectScatter', coordinateSystem: 'geo', data: formattedData,
+                        symbolSize: 15, showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 4, period: 4 },
+                        label: { show: false }, itemStyle: { shadowBlur: 20 },
+                        emphasis: { label: { show: true, position: 'top', formatter: p => p.data.serial, color: '#fff', fontSize: 13, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: [4, 8], borderRadius: 4 } }
+                    }]
+                };
+
+                myChart.setOption(baseOption);
+                updateEchartsTheme(mapThemes.dark);
+            });
+
+        // 3. 生成右侧列表
+        const listContainer = document.getElementById('schoolListContainer');
+        formattedData.forEach((item, index) => {
+            const el = document.createElement('div');
+            el.className = 'school-item';
+            el.innerHTML = `<div class="school-serial">${item.serial}</div><div class="school-name">${item.name}</div><div class="school-desc">${item.Highlight}</div>`;
+            el.addEventListener('click', () => {
+                myChart.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: index });
+            });
+            listContainer.appendChild(el);
+        });
+
+        // 4. 折叠/展开 面板逻辑 与 ECharts 自适应
+        const listPanel = document.getElementById('schoolListPanel');
+        const openListBtn = document.getElementById('openListBtn');
+        const closeListBtn = document.getElementById('closeListBtn');
+        const mapSection = document.getElementById('mapSection');
+
+        // 收起面板
+        closeListBtn.addEventListener('click', () => {
+            listPanel.classList.add('collapsed');
+            openListBtn.classList.remove('hidden'); 
+        });
+
+        // 展开面板
+        openListBtn.addEventListener('click', () => {
+            listPanel.classList.remove('collapsed');
+            openListBtn.classList.add('hidden'); 
+        });
+
+        // 监听父容器尺寸变化，名单滑出时让 ECharts 丝滑重绘
+        const resizeObserver = new ResizeObserver(() => {
+            if(myChart) myChart.resize();
+        });
+        resizeObserver.observe(mapSection);
+        window.addEventListener('resize', () => myChart.resize());
+
+        // 5. 主题切换逻辑 (纯文字)
+        const themeBtn = document.getElementById('themeToggle');
+        themeBtn.addEventListener('click', () => {
+            isLightTheme = !isLightTheme;
+            if (isLightTheme) {
+                document.body.setAttribute('data-theme', 'light');
+                updateEchartsTheme(mapThemes.light);
+            } else {
+                document.body.removeAttribute('data-theme');
+                updateEchartsTheme(mapThemes.dark);
+            }
+        });
+    </script>
+</body>
+</html>
