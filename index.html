@@ -8,68 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     
     <script src="./china.js"></script>
+    <script src="./charter.js"></script>
 
     <style>
-        /* --- 折叠面板 (Accordion) 样式 --- */
-        .accordion-container { 
-            max-width: 1100px; 
-            margin: 0 auto; 
-            text-align: left; 
-        }
-        .accordion-item { 
-            background: var(--card-bg); 
-            border: 1px solid var(--map-border); 
-            margin-bottom: 12px; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            transition: all 0.3s ease; 
-        }
-        .accordion-header { 
-            width: 100%; 
-            text-align: left; 
-            padding: 20px 25px; 
-            font-size: 1.15rem; 
-            font-weight: bold; 
-            color: var(--accent-color); 
-            background: transparent; 
-            border: none; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            transition: background 0.3s; 
-        }
-        .accordion-header:hover { background: rgba(0, 242, 255, 0.05); }
-        body[data-theme="light"] .accordion-header:hover { background: rgba(0, 86, 179, 0.05); }
-        .accordion-header::after { 
-            content: '+'; 
-            font-size: 1.8rem; 
-            font-weight: normal; 
-            transition: transform 0.4s ease; 
-        }
-        /* 展开状态的样式 */
-        .accordion-item.active .accordion-header::after { transform: rotate(45deg); }
-        .accordion-item.active { box-shadow: 0 5px 20px var(--map-shadow); }
-        
-        .accordion-content { 
-            max-height: 0; 
-            overflow: hidden; 
-            transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out; 
-            background: rgba(0, 0, 0, 0.15); 
-        }
-        body[data-theme="light"] .accordion-content { background: rgba(255, 255, 255, 0.4); }
-        
-        .accordion-item.active .accordion-content { 
-            padding: 20px 25px; 
-            max-height: 2000px; /* 足够容纳文本的高度 */
-            border-top: 1px solid var(--map-border); 
-        }
-        .accordion-content p { color: var(--text-secondary); line-height: 1.8; margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; }
-        .accordion-content p:last-child { margin-bottom: 0; }
-        .accordion-content ul { color: var(--text-secondary); line-height: 1.8; font-size: 0.95rem; padding-left: 20px; margin-top: 5px; }
-        .accordion-content li { margin-bottom: 8px; }
-
-        /* --- 全局 CSS 设置 (默认暗色主题) --- */
+        /* --- 全局 CSS 设置 --- */
         :root {
             --bg-color: #050a1f; 
             --accent-color: #00f2ff; 
@@ -82,7 +24,6 @@
             --map-shadow: rgba(0, 128, 255, 0.15);
         }
 
-        /* --- 亮色主题变量 --- */
         body[data-theme="light"] {
             --bg-color: #f0f4f8; 
             --accent-color: #0056b3; 
@@ -105,6 +46,7 @@
             transition: background-color 0.5s, color 0.5s; 
         }
 
+        /* 修复滑动卡顿：为背景网格开启 GPU 硬件加速 */
         body::before {
             content: '';
             position: fixed;
@@ -115,22 +57,24 @@
             background-size: 50px 50px;
             z-index: -1;
             transition: background-image 0.5s;
+            transform: translateZ(0); /* 强制独立图层渲染 */
+            pointer-events: none; /* 防止拦截点击事件 */
         }
 
         .container { max-width: 1500px; margin: 0 auto; padding: 20px; position: relative; }
 
-        /* --- 文字版主题切换按钮 --- */
+        /* --- 主题切换按钮 --- */
         .theme-toggle-btn {
             position: absolute; top: 20px; right: 20px; padding: 8px 20px; border-radius: 20px;
             background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color);
             cursor: pointer; font-weight: bold; font-size: 0.95rem; letter-spacing: 1px;
-            transition: all 0.3s ease; z-index: 100;
+            transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 100;
         }
         .theme-toggle-btn:hover { background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); transform: translateY(-2px); }
         body[data-theme="light"] .theme-toggle-btn:hover { background: rgba(0, 86, 179, 0.1); box-shadow: 0 0 15px rgba(0, 86, 179, 0.3); }
 
         header { text-align: center; padding: 40px 0; }
-        h1.main-title { font-size: 3rem; margin: 0; font-weight: 800; letter-spacing: 2px; background: var(--title-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.5s; }
+        h1.main-title { font-size: 3rem; margin: 0; font-weight: 800; letter-spacing: 2px; background: var(--title-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: text-shadow 0.5s; }
         body:not([data-theme="light"]) h1.main-title { text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); }
         p.sub-title { color: var(--text-secondary); font-size: 1.1rem; margin-top: 10px; }
 
@@ -147,7 +91,7 @@
         .open-list-btn {
             position: absolute; top: 20px; right: 20px; background: rgba(16, 33, 79, 0.8);
             border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 16px; border-radius: 8px;
-            cursor: pointer; font-weight: bold; z-index: 10; backdrop-filter: blur(5px); transition: all 0.3s;
+            cursor: pointer; font-weight: bold; z-index: 10; backdrop-filter: blur(5px); transition: opacity 0.3s, transform 0.3s, background 0.3s;
         }
         body[data-theme="light"] .open-list-btn { background: rgba(255, 255, 255, 0.9); }
         .open-list-btn:hover { background: rgba(0, 242, 255, 0.2); }
@@ -161,6 +105,15 @@
         body[data-theme="light"] .list-section { background: rgba(255, 255, 255, 0.3); }
         .list-section.collapsed { width: 0; opacity: 0; border-left: none; }
         
+        /* 移动端侧边栏适配：避免小屏幕下地图被挤扁 */
+        @media (max-width: 768px) {
+            .list-section {
+                position: absolute; right: 0; top: 0; z-index: 100;
+                background: rgba(16, 33, 79, 0.95); backdrop-filter: blur(10px);
+            }
+            body[data-theme="light"] .list-section { background: rgba(255, 255, 255, 0.95); }
+        }
+
         .list-header {
             padding: 20px; border-bottom: 1px solid var(--map-border); background: rgba(0, 0, 0, 0.2); font-size: 1.1rem;
             font-weight: bold; color: var(--accent-color); display: flex; align-items: center; justify-content: space-between; white-space: nowrap; 
@@ -175,7 +128,7 @@
         .school-items-container::-webkit-scrollbar-track { background: transparent; }
         .school-items-container::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 10px; }
 
-        .school-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.02); cursor: pointer; transition: all 0.3s; }
+        .school-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.02); cursor: pointer; transition: background 0.3s, border-color 0.3s, transform 0.3s; }
         .school-item:hover { background: rgba(0, 242, 255, 0.08); border-color: var(--map-border); transform: translateX(5px); }
         body[data-theme="light"] .school-item:hover { background: rgba(0, 86, 179, 0.05); }
 
@@ -183,15 +136,67 @@
         .school-name { font-size: 1.1rem; font-weight: bold; color: var(--text-primary); margin-bottom: 8px; }
         .school-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-        /* --- 章程区域 --- */
+        /* --- 折叠面板 (Accordion) 样式 --- */
         .charter-section { padding: 40px 0; text-align: center; }
         .section-title { font-size: 2rem; margin-bottom: 40px; display: inline-block; border-bottom: 3px solid var(--accent-color); padding-bottom: 10px; }
-        .charter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; text-align: left; }
-        .charter-card { background: var(--card-bg); padding: 30px; border-radius: 15px; border: 1px solid rgba(128,128,128,0.2); transition: transform 0.3s, box-shadow 0.3s; position: relative; overflow: hidden; }
-        .charter-card:hover { transform: translateY(-5px); }
-        body:not([data-theme="light"]) .charter-card:hover { box-shadow: 0 5px 20px rgba(0, 242, 255, 0.15); }
-        .charter-card h3 { color: var(--accent-color); font-size: 1.3rem; margin-top: 0; }
-        .charter-card p { color: var(--text-secondary); line-height: 1.6; font-size: 0.95rem;}
+
+        .accordion-container { max-width: 1100px; margin: 0 auto; text-align: left; }
+        
+        /* 修复滑动卡顿：优化动画属性，开启硬件加速 */
+        .accordion-item { 
+            background: var(--card-bg); 
+            border: 1px solid var(--map-border); 
+            margin-bottom: 12px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            transition: box-shadow 0.3s ease, border-color 0.3s ease; 
+            transform: translateZ(0); 
+            will-change: transform;
+        }
+        .accordion-header { 
+            width: 100%; 
+            text-align: left; 
+            padding: 20px 25px; 
+            font-size: 1.15rem; 
+            font-weight: bold; 
+            color: var(--accent-color); 
+            background: transparent; 
+            border: none; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            transition: background 0.3s; 
+        }
+        .accordion-header:hover { background: rgba(0, 242, 255, 0.05); }
+        body[data-theme="light"] .accordion-header:hover { background: rgba(0, 86, 179, 0.05); }
+        .accordion-header::after { content: '+'; font-size: 1.8rem; font-weight: normal; transition: transform 0.4s ease; }
+        
+        .accordion-item.active .accordion-header::after { transform: rotate(45deg); }
+        .accordion-item.active { box-shadow: 0 5px 20px var(--map-shadow); }
+        
+        /* 修复文字蹦跶：优化 max-height 和 opacity 动画 */
+        .accordion-content { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.5s cubic-bezier(0, 1, 0, 1), padding 0.3s ease, opacity 0.3s ease; 
+            background: rgba(0, 0, 0, 0.15); 
+            opacity: 0; 
+            padding: 0 25px; 
+        }
+        body[data-theme="light"] .accordion-content { background: rgba(255, 255, 255, 0.4); }
+        
+        .accordion-item.active .accordion-content { 
+            padding: 20px 25px; 
+            max-height: 1000px; /* 足够容纳单章内容 */
+            opacity: 1; 
+            border-top: 1px solid var(--map-border); 
+            transition: max-height 0.6s ease-in-out, padding 0.4s ease, opacity 0.5s ease 0.1s; 
+        }
+        .accordion-content p { color: var(--text-secondary); line-height: 1.8; margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; }
+        .accordion-content p:last-child { margin-bottom: 0; }
+        .accordion-content ul { color: var(--text-secondary); line-height: 1.8; font-size: 0.95rem; padding-left: 20px; margin-top: 5px; }
+        .accordion-content li { margin-bottom: 8px; }
 
         footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.9rem; border-top: 1px solid rgba(128,128,128,0.2); }
     </style>
@@ -226,104 +231,7 @@
 
         <section class="charter-section">
             <h2 class="section-title">“AI准备就绪学校”组织章程</h2>
-            <div class="accordion-container">
-                
-                <div class="accordion-item">
-                    <button class="accordion-header">第一章 总则</button>
-                    <div class="accordion-content">
-                        <p><strong>第一条</strong> 为规范 “AI准备就绪学校”组织（以下简称“本组织”） 的建设与运营，明确组织定位、宗旨使命及运行规则，凝聚教育领域各方力量推进人工智能与教育的深度融合，普及AI教育素养，助力各类学校、师生适应智能时代教育发展需求，特制定本章程。</p>
-                        <p><strong>第二条</strong> 本组织是由有志于推动AI教育普及落地的教育工作者、研究机构、学校及相关行业伙伴自愿组成的非营利性公益组织，以“AI准备就绪学校”推广行动为核心载体，开展AI教育相关的理念传播、资源整合、实践指导与交流协作工作，遵守国家宪法、法律法规及教育行业相关规范，接受教育行政部门的指导和社会各界的监督。</p>
-                        <p><strong>第三条</strong> 本组织秉持 普惠共享、实践赋能、协同创新、守正笃行 的核心原则，以降低AI教育应用门槛、提升学校AI教育实施能力、培育师生AI综合素养为核心目标，搭建开放、多元的AI教育交流与实践平台，推动形成可复制、可推广的AI教育落地路径。</p>
-                        <p><strong>第四条</strong> 本组织的一切活动均坚守教育初心，恪守AI技术应用伦理准则，坚持立德树人根本任务，保障组织成员及参与师生的合法权益，聚焦教育本质推动AI技术赋能教与学全流程。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第二章 宗旨与核心使命</button>
-                    <div class="accordion-content">
-                        <p><strong>第五条 组织宗旨：</strong>以推动教育数字化、智能化转型为导向，整合AI教育优质资源，传播科学的AI教育理念，为各类学校提供AI教育落地的实践指导，为教师与学生提供AI素养提升的专业支持，让每一所参与学校都能实现AI教育的有序推进，每一位师生都能掌握AI赋能教与学的实用能力，构建AI与教育深度融合的良性生态。</p>
-                        <p><strong>第六条 核心使命：</strong></p>
-                        <ul>
-                            <li><strong>理念传播与认知提升：</strong>普及AI+教育的发展趋势、核心价值与应用逻辑，消除学校、师生对AI教育的应用焦虑，树立科学的AI教育认知与使用理念。</li>
-                            <li><strong>资源整合与普惠共享：</strong>汇聚AI教育课程资源、实践案例、工具方法、培训资料等优质内容，搭建公益资源共享平台，为各类学校尤其是基层学校提供免费的AI教育资源支持。</li>
-                            <li><strong>实践指导与能力培育：</strong>为学校提供AI教育整体实施规划指导，为教师开展AI教育应用技能培训，为学生提供AI辅助学习的方法引导，全方位提升校、师、生三级AI应用能力。</li>
-                            <li><strong>交流协作与经验推广：</strong>搭建AI教育交流协作平台，组织开展各类交流、研讨、实践展示活动，挖掘并培育AI教育优秀实践案例，进行总结与推广，实现经验互鉴、协同发展。</li>
-                            <li><strong>伦理规范与风险防控：</strong>制定AI教育应用的伦理指引，引导学校、师生规范、理性使用AI技术，规避AI教育应用中的各类风险，坚守学术诚信与教育本质。</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第三章 组织成员</button>
-                    <div class="accordion-content">
-                        <p><strong>第七条 成员类型：</strong>本组织吸纳单位成员与个人成员两类，自愿申请加入，所有成员享有平等的权利与义务：<br>
-                        <strong>单位成员：</strong>各类中小学、高校、职业院校，教育研究机构、教育服务组织，以及愿意为AI教育普及提供公益支持的相关行业单位；<br>
-                        <strong>个人成员：</strong>各学段在职教师、教育管理工作者，AI教育领域研究人员，以及有志于参与AI教育普及工作的社会各界人士。</p>
-                        <p><strong>第八条 加入条件：</strong><br>
-                        1. 拥护本组织的章程，自愿申请加入本组织；<br>
-                        2. 具有推动AI教育发展的意愿，积极参与本组织开展的各项公益活动；<br>
-                        3. 单位成员办学/运营行为规范，个人成员遵守教育行业职业道德，无不良记录；<br>
-                        4. 恪守AI教育应用伦理准则，自觉维护教育公平与学术诚信。</p>
-                        <p><strong>第九条 加入程序：</strong>向本组织秘书处提交书面/线上《“AI准备就绪学校”组织加入申请表》；秘书处对申请材料进行审核，报组织理事会审议；审议通过后，由秘书处向申请方颁发成员证书，正式纳入组织成员管理体系，相关信息在组织官方平台公示。</p>
-                        <p><strong>第十条 成员权利：</strong>享有本组织的选举权、被选举权和表决权（公益支持类单位成员除外）；优先、免费参与本组织开展的培训、研讨、交流、竞赛等各类公益活动；免费获取本组织资源共享平台的所有优质资源，获得AI教育实践的专业指导与专家咨询服务；有权展示自身AI教育实践成果，获得本组织的宣传推广与案例孵化支持；对本组织的工作提出意见、建议和监督权，有权要求对组织相关工作进行解释说明；自愿申请退出本组织的权利。</p>
-                        <p><strong>第十一条 成员义务：</strong>严格遵守本组织章程，执行组织的各项决议和工作安排；积极参与本组织开展的各项公益活动，主动配合组织完成相关工作任务；主动分享自身的AI教育实践经验、资源成果，助力组织资源共享体系建设；自觉维护本组织的公益形象和声誉，不从事任何损害组织利益的活动；恪守AI教育应用伦理规范，规范开展AI教育教学实践，杜绝违规使用AI的行为；如实向组织反馈AI教育实践中的问题与需求，配合组织开展调研、统计与成果总结工作。</p>
-                        <p><strong>第十二条 成员退出与资格取消：</strong>成员如需退出，应提前30日向秘书处提交书面退出申请，经理事会审议通过后，办理退出手续并交回成员证书，相关信息予以公示；成员连续12个月未参与组织任何活动、未履行成员义务，视为自动退出，秘书处将公示并注销其成员资格；成员若存在违反本章程、损害组织利益、违反AI教育伦理规范或从事违法违规行为的，理事会有权直接取消其成员资格，予以公示并追究相关责任。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第四章 组织机构与职责</button>
-                    <div class="accordion-content">
-                        <p>本组织设立 <strong>理事会</strong> 、 <strong>专家指导委员会</strong> 和 <strong>秘书处</strong> 三大核心机构，分工协作、权责明确，统筹推进组织各项工作，所有机构均围绕公益目标开展工作，不设盈利性部门。</p>
-                        <p><strong>第十三条 理事会：</strong>理事会是本组织的最高决策机构，由单位成员代表、个人成员中的资深教育工作者及AI教育专家组成，设理事长1名、副理事长若干名、理事若干名，每届任期3年，可连选连任；核心职权：制定和修改本组织章程；审议组织的发展规划、年度工作计划与工作总结；审议成员的加入、退出及资格取消事项；选举和罢免理事长、副理事长、秘书长；审议组织经费收支情况；决定组织的重大事项与发展方向。理事会会议每年至少召开1次，必要时可由理事长提议召开临时会议，会议决议须经半数以上理事表决通过方可生效。</p>
-                        <p><strong>第十四条 专家指导委员会：</strong>专家指导委员会是本组织的专业指导机构，由AI领域资深学者、教育行业专家、各学段一线优秀教师、教育管理专家等组成，为组织提供学术与专业支持；核心职权：为组织的发展规划、活动策划提供专业指导；参与AI教育资源研发、实践案例评审与孵化；为教师培训、学校实践指导提供授课与专业咨询服务；制定AI教育应用伦理指引与实践标准；指导组织开展AI教育相关课题研究。</p>
-                        <p><strong>第十五条 秘书处：</strong>秘书处是本组织的日常办事机构，设在理事长单位，设秘书长1名、副秘书长若干名，由理事会聘任，在理事长领导下开展工作；核心职权：执行理事会的各项决议，落实组织年度工作计划；负责成员的申请审核、登记管理及证书发放；组织开展各类AI教育公益活动；搭建并维护资源共享平台，整合与管理AI教育资源；负责组织的日常联络、宣传推广、档案管理；统筹管理组织经费，做好收支统计与公示；完成理事会交办的其他工作。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第五章 核心工作与活动开展</button>
-                    <div class="accordion-content">
-                        <p><strong>第十六条</strong> 本组织以“AI准备就绪学校”推广行动为核心，开展多元化、常态化的公益工作与活动，聚焦AI教育普及落地，主要包括以下板块：</p>
-                        <ul>
-                            <li><strong>理念普及工作：</strong>开展AI教育政策解读、理念宣讲等公益活动，通过线上直播、线下讲座、宣传手册等形式，向学校、师生传播科学的AI教育理念；</li>
-                            <li><strong>资源研发与共享：</strong>组织专家团队研发AI教育通识课程、实践案例集、教学指导手册、学生AI素养培育指南等资源，搭建线上公益资源共享平台，实现资源免费开放；</li>
-                            <li><strong>专业培训与指导：</strong>针对教师开展AI教育应用技能、教学融合方法、伦理规范等专题培训与研修；为学校提供AI教育整体实施规划、课堂应用落地等一对一实践指导；</li>
-                            <li><strong>交流与实践展示：</strong>定期组织AI教育经验交流会、案例研讨会、校园观摩活动，开展AI教育教学设计大赛、学生AI素养实践竞赛等，搭建成果展示平台，挖掘优秀实践案例；</li>
-                            <li><strong>案例孵化与推广：</strong>对基层学校的AI教育实践进行孵化指导，总结优秀实践经验，形成标准化实施模式，通过官方平台、行业交流等渠道进行全国推广；</li>
-                            <li><strong>伦理与风险防控：</strong>制定《AI教育应用伦理指引》，开展AI教育风险防控公益讲座，引导学校、师生规范使用AI工具，规避学术作弊、隐私泄露等风险。</li>
-                        </ul>
-                        <p><strong>第十七条</strong> 本组织所有工作与活动均坚持公益属性，不向成员及参与师生收取任何费用，活动策划与实施由秘书处统筹，专家指导委员会提供专业指导，全体成员协同参与。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第六章 经费管理</button>
-                    <div class="accordion-content">
-                        <p><strong>第十八条</strong> 本组织为非营利性公益组织，经费来源坚持 公益筹措、专款专用、公开透明 的原则，无强制性收费，经费主要来源包括：理事长单位、副理事长单位的公益支持；社会各界的公益捐赠、企业及相关单位的合法公益资助；教育行政部门的公益项目扶持资金；其他合法合规的公益经费来源。</p>
-                        <p><strong>第十九条</strong> 经费使用范围严格限定为本组织的公益工作与活动开展，不得挪作他用，具体包括：资源研发与制作费用（包括专家劳务、资料编写、课程制作、平台搭建与维护等）；活动组织费用（包括线上线下活动策划、场地布置、物料制作等）；日常运营费用（包括宣传推广、档案管理、日常联络等）；其他与本组织AI教育公益推广直接相关的费用。</p>
-                        <p><strong>第二十条</strong> 经费由秘书处统筹管理，建立规范的财务台账，严格执行国家财务管理制度，实行专款专用；秘书处定期向理事会汇报经费收支情况，每年向全体成员公示一次经费使用明细，接受理事会、成员、捐赠方及社会各界的监督与审核。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第七章 章程的修改与解释</button>
-                    <div class="accordion-content">
-                        <p><strong>第二十一条</strong> 本章程的修改，须由秘书处或1/3以上组织成员提出修改建议，经理事会审议并经2/3以上理事表决通过后方可修订。</p>
-                        <p><strong>第二十二条</strong> 修订后的章程，由秘书处向全体成员公示后正式生效，并报相关指导单位备案。</p>
-                        <p><strong>第二十三条</strong> 本章程的最终解释权归 “AI准备就绪学校”组织理事会 所有。章程未尽事宜，由理事会结合国家法律法规及组织发展实际，制定补充规则，补充规则与本章程具有同等效力。</p>
-                    </div>
-                </div>
-
-                <div class="accordion-item">
-                    <button class="accordion-header">第八章 附则</button>
-                    <div class="accordion-content">
-                        <p><strong>第二十四条</strong> 本章程经理事会第一次会议审议通过后，自发布之日起正式生效。</p>
-                        <p><strong>第二十五条</strong> 本组织的解散，须经理事会2/3以上理事表决通过方可实施，解散后剩余经费将全部用于公益教育事业，并向社会公示。</p>
-                        <p><strong>第二十六条</strong> 本章程的制定与实施，接受教育行政部门、行业主管单位的指导和社会各界的监督，本组织将根据国家政策与行业发展动态，适时修订章程相关条款。</p>
-                    </div>
-                </div>
-
+            <div class="accordion-container" id="charterContainer">
             </div>
         </section>
     </div>
@@ -369,13 +277,11 @@
             });
         }
 
-        // 3. 核心：加载地图数据（加入安全检测拦截）
+        // 3. 加载地图数据
         if (typeof chinaGeoJson === 'undefined') {
-            alert("系统检测到错误：未能正确读取 china.js！\n请确保：\n1. china.js 和 index.html 在同一个文件夹内。\n2. china.js 文件的第一行写的是 var chinaGeoJson = {");
+            console.error("未能读取 china.js！请确保文件存在且变量名为 chinaGeoJson。");
         } else {
-            // 直接将 JS 变量注册给 ECharts
             echarts.registerMap('china', chinaGeoJson);
-
             const baseOption = {
                 tooltip: {
                     trigger: 'item', borderWidth: 1,
@@ -396,7 +302,6 @@
                     emphasis: { label: { show: true, position: 'top', formatter: p => p.data.serial, color: '#fff', fontSize: 13, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.6)', padding: [4, 8], borderRadius: 4 } }
                 }]
             };
-
             myChart.setOption(baseOption);
             updateEchartsTheme(mapThemes.dark);
         }
@@ -413,7 +318,7 @@
             listContainer.appendChild(el);
         });
 
-        // 5. 折叠面板逻辑与 ECharts 尺寸自适应
+        // 5. 侧边栏折叠逻辑
         const listPanel = document.getElementById('schoolListPanel');
         const openListBtn = document.getElementById('openListBtn');
         const closeListBtn = document.getElementById('closeListBtn');
@@ -429,9 +334,15 @@
             openListBtn.classList.add('hidden'); 
         });
 
-        const resizeObserver = new ResizeObserver(() => { if(myChart) myChart.resize(); });
-        resizeObserver.observe(mapSection);
-        window.addEventListener('resize', () => myChart.resize());
+        // 修复滑动卡顿：防抖(Debounce) 的 resize 监听
+        let resizeTimeout;
+        const resizeObserver = new ResizeObserver(() => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if(myChart) myChart.resize();
+            }, 100); 
+        });
+        if (mapSection) resizeObserver.observe(mapSection);
 
         // 6. 主题切换逻辑
         const themeBtn = document.getElementById('themeToggle');
@@ -446,24 +357,41 @@
             }
         });
 
+        // 7. 动态读取并渲染 charter.js 中的章程数据
+        function initCharterAccordion() {
+            const container = document.getElementById('charterContainer');
+            // 检查容器是否存在，以及 charterData 是否成功从 charter.js 加载
+            if (!container || typeof charterData === 'undefined') {
+                console.error("无法渲染章程：未找到容器或未成功加载 charter.js");
+                return;
+            }
 
-    // 7. 章程折叠面板(Accordion)交互逻辑
-        const accordionItems = document.querySelectorAll('.accordion-item');
-        
-        accordionItems.forEach(item => {
-            const header = item.querySelector('.accordion-header');
-            header.addEventListener('click', () => {
-                // 可选：如果希望每次只能展开一个章节，取消下面这三行的注释
-                // accordionItems.forEach(otherItem => {
-                //     if (otherItem !== item) otherItem.classList.remove('active');
-                // });
-                
-                // 切换当前点击的项的展开/收起状态
-                item.classList.toggle('active');
+            let htmlContent = '';
+            charterData.forEach(item => {
+                htmlContent += `
+                    <div class="accordion-item">
+                        <button class="accordion-header">${item.title}</button>
+                        <div class="accordion-content">
+                            ${item.content}
+                        </div>
+                    </div>
+                `;
             });
-        });
+            container.innerHTML = htmlContent;
+
+            // 为新生成的面板绑定点击展开事件
+            const accordionItems = container.querySelectorAll('.accordion-item');
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                header.addEventListener('click', () => {
+                    item.classList.toggle('active');
+                });
+            });
+        }
+
+        // 页面加载完成后执行渲染
+        initCharterAccordion();
+        
     </script>
 </body>
-
 </html>
-
